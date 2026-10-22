@@ -1,0 +1,1 @@
+"""Servicios puros del dominio."""

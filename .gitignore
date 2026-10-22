@@ -1,0 +1,45 @@
+# Entorno y caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Configuración local con secretos o overrides
+.env
+.env.local
+
+# Estado persistido, bloqueos y reportes generados en ejecución
+state/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.lock
+*.xlsx
+*.tmp
+
+# Logs y salidas de ejecución: se ignoran los archivos, se conservan las carpetas
+logs/*
+!logs/.gitkeep
+output/*
+!output/.gitkeep
+
+# Cualquier carpeta oculta (todo directorio cuyo nombre empiece con ".")
+.*/
+
+# Estado local de herramientas (contiene rutas absolutas de la máquina)
+reasonix.toml
+skills-lock.json
+
+# Archivos del sistema operativo y editores
+.DS_Store
+Thumbs.db
+*.swp
+
+# Si algún día necesitas versionar una carpeta oculta concreta (p. ej. .github/),
+# añade su excepción debajo de la regla ".*/":
+# !.github/
