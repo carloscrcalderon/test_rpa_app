@@ -23,6 +23,7 @@ Diseñado bajo **Arquitectura Hexagonal (Puertos y Adaptadores)** y **Diseño Gu
 8. [Decisiones de diseño](#decisiones-de-diseño)
 9. [Runbook operativo (diagnóstico a las 3 a.m.)](#runbook-operativo-diagnóstico-a-las-3-am)
 10. [Desarrollo y suite de pruebas](#desarrollo-y-suite-de-pruebas)
+11. [Pendientes](#pendientes)
 
 ---
 
@@ -187,7 +188,7 @@ Cada invocación de `python -m rpa_cuentas run` ejecuta la siguiente secuencia d
 
 ### Requisitos previos
 
-- **Sistema operativo**: Linux / macOS (requiere soporte POSIX `fcntl.flock`).
+- **Sistema operativo**: Linux / macOS (requiere soporte POSIX `fcntl.flock`). Ver [Pendientes](#pendientes) para el estado por plataforma del bloqueo de archivo y de la liberación ante terminación del proceso.
 - **Python**: `>= 3.11`
 - **Gestor de paquetes**: [uv](https://docs.astral.sh/uv/) (recomendado) o `pip`.
 
@@ -530,3 +531,21 @@ make lint
 # Formatea automáticamente el código fuente y las pruebas
 make format
 ```
+
+---
+
+## Pendientes
+
+Estado del **bloqueo de archivo** (`FileExecutionLock`) y de la **terminación del proceso** (liberación del bloqueo), verificado directamente contra el código de esta versión:
+
+| Plataforma | Bloqueo de archivo (`FileExecutionLock`) | Terminación del proceso (liberación del bloqueo) |
+| :--- | :--- | :--- |
+| **Ubuntu 24.x** | Probado | Probado |
+| **Windows** | No implementado (`import fcntl` es de nivel de módulo y no existe fallback `msvcrt.locking`) | No implementado |
+| **macOS** | Sin probar (POSIX: `fcntl.flock` está disponible) | Sin probar |
+
+**Lo que ya existe**
+
+- `FileExecutionLock.acquire` abre `state/rpa_cuentas.lock` con `os.open(O_CREAT | O_RDWR)` y solicita `fcntl.flock(fd, LOCK_EX | LOCK_NB)`, manteniendo el descriptor abierto durante toda la corrida y escribiendo el PID con `ftruncate` + `fsync`. Si otra instancia conserva el bloqueo, el `BlockingIOError` se traduce en `ConcurrentExecutionError` (código de salida `2`).
+- **Salida normal y por excepción**: `ProcessBatchUseCase.execute` envuelve el lote en `with self._execution_lock`, de modo que `__exit__` → `release()` desvincula el lockfile, ejecuta `fcntl.flock(fd, LOCK_UN)` y cierra el descriptor. Esto cubre también `KeyboardInterrupt` (`Ctrl+C`), que desmonta el contexto antes de propagarse.
+- **Muerte abrupta** (`SIGKILL`, corte de energía, reinicio del host): el kernel cierra los descriptores del proceso y libera el `flock`; el lockfile remanente lo recupera la corrida siguiente, que readquiere el bloqueo y sobrescribe el PID (cubierto por `test_file_execution_lock_reclaims_orphan_lock_from_dead_pid` y `test_file_execution_lock_reclaims_orphan_lock_even_when_pid_is_reused_or_self`).
