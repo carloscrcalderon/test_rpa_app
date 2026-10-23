@@ -438,11 +438,22 @@ El dominio distingue estrictamente entre errores de negocio, fallos técnicos de
 | **`TECNICO_DEFINITIVO`** (`FALLO_TECNICO`) | `HTTP 4xx` (`!= 404, 429`) o violación de contrato JSON en `HTTP 200` | **No** (`1` intento) | **Sí** | Una violación de protocolo o esquema JSON es determinista en el instante de la corrida, pero debe volver a consultarse en la siguiente ejecución cuando el proveedor corrija la anomalía. |
 | **`TECNICO_TRANSITORIO`** (`FALLO_TECNICO`) | `HTTP 429`, `HTTP 5xx`, `Timeout`, error de socket/red | **Sí** (hasta `RETRY_MAX_ATTEMPTS`) | **Sí** (si agotó intentos) | Fallos efímeros de red, saturación o *rate limiting*. |
 
-Para cada reintento transitorio ($1 \le \text{attempt} < \text{max\_attempts}$), el tiempo de espera se calcula en `calculate_retry_delay`:
-- Si la respuesta incluye un encabezado `Retry-After` numérico finito $\ge 0$:
-  $$\text{delay} = \min(\text{Retry-After}, \text{max\_delay})$$
-- En caso contrario, se aplica *exponential backoff* con *jitter* uniforme acotado ($\text{jitter\_ratio} \in [0, 0.25]$):
-  $$\text{delay} = \min\left(\text{base\_delay} \cdot \text{backoff\_factor}^{\text{attempt}-1} + \text{jitter\_ratio} \cdot \text{base\_delay},\ \text{max\_delay}\right)$$
+Para cada reintento transitorio (`1 <= attempt < max_attempts`), el tiempo de espera se calcula en `calculate_retry_delay`:
+
+- Si la respuesta incluye un encabezado `Retry-After` numérico finito `>= 0`:
+
+  ```text
+  delay = min(Retry-After, max_delay)
+  ```
+
+- En caso contrario, se aplica *exponential backoff* con *jitter* uniforme acotado (`jitter_ratio` en `[0, 0.25]`):
+
+  ```text
+  delay = min(
+      base_delay * backoff_factor^(attempt - 1) + jitter_ratio * base_delay,
+      max_delay,
+  )
+  ```
 
 ### 3. Vigencia temporal de estados terminales (`STATE_TTL_SECONDS`)
 
