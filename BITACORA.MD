@@ -22,4 +22,4 @@ El log, este hacia una instancia en cada .py lo que hacia que se generara mas co
 
 ## 4. Qué decidiste tú sin consultarle.
 
-La arquitectura de el serivio que fuera hexagonal con una template DDD,
+La arquitectura de el servicio que fuera hexagonal con una template DDD,
